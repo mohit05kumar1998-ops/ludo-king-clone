@@ -1,0 +1,278 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+}
+
+body {
+    background: #140803 url('https://images.unsplash.com/photo-1546484475-7f7bd55792da?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 450px;
+    height: 100vh;
+    max-height: 850px;
+    background: rgba(20, 10, 5, 0.92);
+    border: 6px solid #d4af37;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+    position: relative;
+}
+
+/* Top Bar */
+.top-bar {
+    background: linear-gradient(180deg, #b8860b, #5c4008);
+    color: #fff;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #ffd700;
+}
+
+.room-tag {
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #ffe893;
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Board Area & Secret Corner */
+.board-wrapper {
+    position: relative;
+    padding: 12px;
+    background: radial-gradient(circle, #3d1e0b, #170902);
+}
+
+#secret-hotspot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    z-index: 99;
+    background: transparent;
+    cursor: pointer;
+}
+
+.ludo-board {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #fff8dc;
+    border: 8px solid #d4af37;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+}
+
+/* Player Cards & Profiles */
+.players-panel {
+    flex: 1;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: radial-gradient(circle, #2b1407, #0f0501);
+}
+
+.player-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid #555;
+    border-radius: 10px;
+    color: white;
+}
+
+.player-card.active-turn {
+    border-color: #ffd700;
+    box-shadow: 0 0 12px #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+}
+
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #ffd700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+}
+
+/* 3D Rolling Dice */
+.dice-section {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.dice-box {
+    width: 55px;
+    height: 55px;
+    perspective: 600px;
+}
+
+.cube {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s ease-out;
+}
+
+.face {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    background: #ffffff;
+    border: 2px solid #333;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 26px;
+    font-weight: bold;
+    color: #111;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+}
+
+.front  { transform: rotateY(  0deg) translateZ(27.5px); }
+.back   { transform: rotateY(180deg) translateZ(27.5px); }
+.right  { transform: rotateY( 90deg) translateZ(27.5px); }
+.left   { transform: rotateY(-90deg) translateZ(27.5px); }
+.top    { transform: rotateX( 90deg) translateZ(27.5px); }
+.bottom { transform: rotateX(-90deg) translateZ(27.5px); }
+
+.ludo-btn {
+    background: linear-gradient(180deg, #28a745, #155724);
+    color: white;
+    font-weight: bold;
+    padding: 12px 25px;
+    border: 2px solid #a5d6a7;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+/* Disguised Modal & Controller UI */
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.hidden { display: none !important; }
+
+.modal-content {
+    background: #2b180a;
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    width: 85%;
+    padding: 20px;
+    color: white;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #d4af37;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+.close-btn { font-size: 24px; cursor: pointer; }
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.stealth-controller {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed #666;
+}
+
+.stealth-title {
+    font-size: 13px;
+    color: #ffd700;
+    margin-bottom: 10px;
+}
+
+.force-buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    margin-bottom: 12px;
+}
+
+.force-btn {
+    background: #d4af37;
+    border: none;
+    padding: 8px 0;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.force-btn.selected {
+    background: #28a745;
+    color: white;
+}
+
+.preset-section select, input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: none;
+}
+
+.remote-connect-box {
+    margin-top: 15px;
+    font-size: 12px;
+}
+
+.ludo-btn-small {
+    background: #0275d8;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    margin-top: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+}
