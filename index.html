@@ -3,263 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ludo Classic Live</title>
+    <title>Ludo Engine Live</title>
+    <!-- Free Game Engine & WebRTC Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: Arial, Helvetica, sans-serif; }
-        body {
-            background: #10599a url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=1000') center/cover;
-            display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden;
-        }
-        .app-viewport {
-            width: 100%; max-width: 420px; height: 100vh; max-height: 860px;
-            background: repeating-linear-gradient(45deg, #186cb8, #186cb8 20px, #145ca0 20px, #145ca0 40px);
-            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-            padding: 8px; position: relative; border: 2px solid #000; box-shadow: 0 0 20px rgba(0,0,0,0.8);
-        }
-        .ads-banner {
-            width: 100%; background: #fff; border-radius: 4px; padding: 6px 10px;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 11px; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
-        }
-        .meta-tag { background: #0084ff; color: #fff; padding: 2px 4px; border-radius: 2px; font-weight: bold; font-size: 9px; }
-        .player-slots-row { width: 100%; display: flex; justify-content: space-between; padding: 4px 10px; }
-        .player-card {
-            width: 110px; height: 50px; background: linear-gradient(180deg, #e6e6e6, #cccccc);
-            border: 2px solid #222; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
-            padding: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); position: relative; transition: all 0.3s;
-        }
-        .player-card.active-turn { border: 3px solid #ffd700; box-shadow: 0 0 15px #ffd700; transform: scale(1.05); }
-        .badge-icon {
-            width: 32px; height: 38px; border-radius: 6px; display: flex; justify-content: center; align-items: center;
-            border: 1px solid #000; box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
-        }
-        .bg-p1 { background: linear-gradient(180deg, #0052cc, #002b80); }
-        .bg-p2 { background: linear-gradient(180deg, #cc0000, #800000); }
-        .bg-p3 { background: linear-gradient(180deg, #009933, #004d1a); }
-        .bg-p4 { background: linear-gradient(180deg, #cc9900, #806000); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0b1a30; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; font-family: sans-serif; }
+        #game-container { width: 100vw; max-width: 450px; height: 100vh; max-height: 800px; position: relative; }
         
-        .dice-slot {
-            width: 42px; height: 42px; background: #fff; border: 2px solid #555; border-radius: 6px;
-            display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-            font-size: 22px; font-weight: bold; color: #000; cursor: pointer;
-        }
-
-        /* Board Area */
-        .board-container {
-            width: 100%; aspect-ratio: 1 / 1; background: #fff; border: 4px solid #000;
-            display: grid; grid-template-columns: 6fr 3fr 6fr; grid-template-rows: 6fr 3fr 6fr;
-            position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6);
-        }
-        #secret-hotspot { position: absolute; top: 0; right: 0; width: 45px; height: 45px; z-index: 99; }
-        
-        .house { width: 100%; height: 100%; border: 1px solid #000; padding: 10%; position: relative; }
-        .house-red { background: #ff2a2a; } .house-green { background: #00b050; }
-        .house-blue { background: #00b0f0; } .house-yellow { background: #ffc000; }
-        
-        .house-inner {
-            width: 100%; height: 100%; background: #fff; border: 2px solid #000;
-            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px;
-        }
-        .spot {
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            box-shadow: inset 0 0 4px rgba(0,0,0,0.6); border: 1px solid #888; position: relative;
-        }
-
-        /* Tokens (Gotiyan) */
-        .pawn {
-            width: 22px; height: 30px; border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
-            position: relative; box-shadow: 0 3px 6px rgba(0,0,0,0.6); border: 1.5px solid #fff;
-            cursor: pointer; transition: transform 0.2s; z-index: 20;
-        }
-        .pawn::after {
-            content: ''; position: absolute; width: 8px; height: 8px; background: #fff;
-            border-radius: 50%; top: 4px; left: 5px;
-        }
-        .pawn.movable {
-            animation: bounce 0.6s infinite alternate;
-            border: 2px solid #ffd700;
-            box-shadow: 0 0 10px #ffd700;
-        }
-        @keyframes bounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(-6px); }
-        }
-
-        .pawn-blue { background: #0066ff; }
-        .pawn-red { background: #e60000; }
-        .pawn-green { background: #009933; }
-        .pawn-yellow { background: #ffcc00; }
-
-        /* Track Grid */
-        .track { display: grid; background: #fff; }
-        .track-v { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); }
-        .track-h { grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(3, 1fr); }
-        .cell { border: 1px solid #aaa; position: relative; display: flex; justify-content: center; align-items: center; font-size: 11px; }
-        .c-red { background: #ff2a2a; } .c-green { background: #00b050; }
-        .c-blue { background: #00b0f0; } .c-yellow { background: #ffc000; }
-
-        .center-home { position: relative; background: #fff; border: 1px solid #000; }
-        .tri { position: absolute; width: 100%; height: 100%; }
-        .tri-red { background: #ff2a2a; clip-path: polygon(0 0, 50% 50%, 0 100%); }
-        .tri-green { background: #00b050; clip-path: polygon(0 0, 50% 50%, 100% 0); }
-        .tri-yellow { background: #ffc000; clip-path: polygon(100% 0, 50% 50%, 100% 100%); }
-        .tri-blue { background: #00b0f0; clip-path: polygon(0 100%, 50% 50%, 100% 100%); }
-
-        .status-msg {
-            color: #fff; font-size: 13px; font-weight: bold; text-align: center; margin: 4px 0; text-shadow: 1px 1px 3px #000;
-        }
-
-        /* Bottom Controls */
-        .bottom-nav-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px; }
-        .nav-btn-icon {
-            width: 36px; height: 36px; background: linear-gradient(180deg, #ffcc00, #b38f00);
-            border: 2px solid #000; border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            font-size: 18px; box-shadow: 0 3px 5px rgba(0,0,0,0.5); cursor: pointer;
-        }
-
-        /* Remote Modal */
-        .modal {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center;
-        }
-        .modal.hidden { display: none; }
-        .modal-body {
-            background: #111; border: 2px solid #ffd700; border-radius: 10px; width: 85%; padding: 15px; color: #fff;
-        }
+        /* Secret Remote Modal */
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-body { background: #111; border: 2px solid #ffd700; border-radius: 10px; width: 85%; padding: 15px; color: #fff; text-align: center; }
         .num-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 10px 0; }
-        .num-btn { background: #ffd700; border: none; padding: 8px 0; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .num-btn.active { background: #28a745; color: #fff; }
-        .input-box { width: 100%; padding: 6px; margin: 6px 0; border-radius: 4px; border: none; }
-        .action-btn { background: #0084ff; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .num-btn { background: #ffd700; border: none; padding: 10px 0; font-weight: bold; border-radius: 4px; cursor: pointer; color: #000; }
+        .input-box { width: 100%; padding: 8px; margin: 8px 0; border-radius: 4px; border: none; }
+        .action-btn { background: #0084ff; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="app-viewport">
-        <div class="ads-banner">
-            <div>Reach new customers interested to buy with ads that click to WhatsApp.</div>
-            <span class="meta-tag">Meta</span>
-        </div>
+    <div id="game-container"></div>
 
-        <!-- Top Players (Red & Green) -->
-        <div class="player-slots-row">
-            <div class="player-card" id="card-p1">
-                <div class="badge-icon bg-p2"><div class="pawn pawn-red"></div></div>
-                <div class="dice-slot" id="dice-p1">🎲</div>
-            </div>
-            <div class="player-card" id="card-p2">
-                <div class="dice-slot" id="dice-p2">🎲</div>
-                <div class="badge-icon bg-p3"><div class="pawn pawn-green"></div></div>
-            </div>
-        </div>
-
-        <!-- Ludo Board -->
-        <div class="board-container">
-            <div id="secret-hotspot"></div>
-
-            <!-- Red Base -->
-            <div class="house house-red">
-                <div class="house-inner">
-                    <div class="spot" id="r-base-0"></div><div class="spot" id="r-base-1"></div>
-                    <div class="spot" id="r-base-2"></div><div class="spot" id="r-base-3"></div>
-                </div>
-            </div>
-
-            <!-- Top Path (Green) -->
-            <div class="track track-v" id="track-top">
-                <div class="cell" id="c-11"></div><div class="cell" id="c-12">↓</div><div class="cell" id="c-13"></div>
-                <div class="cell" id="c-10"></div><div class="cell c-green" id="c-g1"></div><div class="cell c-green" id="c-14">★</div>
-                <div class="cell" id="c-9"></div><div class="cell c-green" id="c-g2"></div><div class="cell" id="c-15"></div>
-                <div class="cell" id="c-8"></div><div class="cell c-green" id="c-g3"></div><div class="cell" id="c-16"></div>
-                <div class="cell" id="c-7"></div><div class="cell c-green" id="c-g4"></div><div class="cell" id="c-17"></div>
-                <div class="cell" id="c-6"></div><div class="cell c-green" id="c-g5"></div><div class="cell" id="c-18"></div>
-            </div>
-
-            <!-- Green Base -->
-            <div class="house house-green">
-                <div class="house-inner">
-                    <div class="spot" id="g-base-0"></div><div class="spot" id="g-base-1"></div>
-                    <div class="spot" id="g-base-2"></div><div class="spot" id="g-base-3"></div>
-                </div>
-            </div>
-
-            <!-- Left Path (Red) -->
-            <div class="track track-h" id="track-left">
-                <div class="cell" id="c-0"></div><div class="cell c-red" id="c-1">★</div><div class="cell" id="c-2"></div><div class="cell" id="c-3"></div><div class="cell" id="c-4"></div><div class="cell" id="c-5"></div>
-                <div class="cell" id="c-51">→</div><div class="cell c-red" id="c-r1"></div><div class="cell c-red" id="c-r2"></div><div class="cell c-red" id="c-r3"></div><div class="cell c-red" id="c-r4"></div><div class="cell c-red" id="c-r5"></div>
-                <div class="cell" id="c-50"></div><div class="cell" id="c-49"></div><div class="cell" id="c-48">★</div><div class="cell" id="c-47"></div><div class="cell" id="c-46"></div><div class="cell" id="c-45"></div>
-            </div>
-
-            <div class="center-home">
-                <div class="tri tri-red"></div><div class="tri tri-green"></div>
-                <div class="tri tri-yellow"></div><div class="tri tri-blue"></div>
-            </div>
-
-            <!-- Right Path (Yellow) -->
-            <div class="track track-h" id="track-right">
-                <div class="cell" id="c-19"></div><div class="cell" id="c-20"></div><div class="cell" id="c-21"></div><div class="cell" id="c-22">★</div><div class="cell" id="c-23"></div><div class="cell" id="c-24"></div>
-                <div class="cell c-yellow" id="c-y5"></div><div class="cell c-yellow" id="c-y4"></div><div class="cell c-yellow" id="c-y3"></div><div class="cell c-yellow" id="c-y2"></div><div class="cell c-yellow" id="c-y1"></div><div class="cell" id="c-25">←</div>
-                <div class="cell" id="c-31"></div><div class="cell" id="c-30"></div><div class="cell" id="c-29"></div><div class="cell" id="c-28"></div><div class="cell c-yellow" id="c-27">★</div><div class="cell" id="c-26"></div>
-            </div>
-
-            <!-- Blue Base -->
-            <div class="house house-blue">
-                <div class="house-inner">
-                    <div class="spot" id="b-base-0"></div><div class="spot" id="b-base-1"></div>
-                    <div class="spot" id="b-base-2"></div><div class="spot" id="b-base-3"></div>
-                </div>
-            </div>
-
-            <!-- Bottom Path (Blue) -->
-            <div class="track track-v" id="track-bottom">
-                <div class="cell" id="c-44"></div><div class="cell c-blue" id="c-b5"></div><div class="cell" id="c-32"></div>
-                <div class="cell" id="c-43"></div><div class="cell c-blue" id="c-b4"></div><div class="cell" id="c-33"></div>
-                <div class="cell" id="c-42"></div><div class="cell c-blue" id="c-b3"></div><div class="cell" id="c-34"></div>
-                <div class="cell" id="c-41"></div><div class="cell c-blue" id="c-b2"></div><div class="cell" id="c-35"></div>
-                <div class="cell c-blue" id="c-40">★</div><div class="cell c-blue" id="c-b1"></div><div class="cell" id="c-36"></div>
-                <div class="cell" id="c-39"></div><div class="cell" id="c-38">↑</div><div class="cell" id="c-37"></div>
-            </div>
-
-            <!-- Yellow Base -->
-            <div class="house house-yellow">
-                <div class="house-inner">
-                    <div class="spot" id="y-base-0"></div><div class="spot" id="y-base-1"></div>
-                    <div class="spot" id="y-base-2"></div><div class="spot" id="y-base-3"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="status-msg" id="status-line">Player 1 (Blue) Turn - Roll Dice!</div>
-
-        <!-- Bottom Players (Blue & Yellow) -->
-        <div class="player-slots-row">
-            <div class="player-card active-turn" id="card-p0">
-                <div class="badge-icon bg-p1"><div class="pawn pawn-blue"></div></div>
-                <div class="dice-slot" id="dice-p0">🎲</div>
-            </div>
-            <div class="player-card" id="card-p3">
-                <div class="dice-slot" id="dice-p3">🎲</div>
-                <div class="badge-icon bg-p4"><div class="pawn pawn-yellow"></div></div>
-            </div>
-        </div>
-
-        <!-- Bottom Controls -->
-        <div class="bottom-nav-bar">
-            <div class="nav-btn-icon" id="open-settings-btn">☰</div>
-            <div style="color:#fff; font-size:10px; font-weight:bold;" id="room-code-tag">ROOM: Connecting...</div>
-            <div style="color:#ffd700; font-size:11px; font-weight:bold;">LIVE</div>
-        </div>
-    </div>
-
-    <!-- Hidden Remote Control Panel -->
-    <div class="modal hidden" id="admin-modal">
+    <!-- Hidden Remote Admin Panel -->
+    <div class="modal" id="admin-modal">
         <div class="modal-body">
-            <div style="display:flex; justify-content:space-between;">
-                <h3>Game Remote Control</h3>
-                <span id="close-modal" style="cursor:pointer; font-size:20px;">&times;</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Secret Remote Panel</h3>
+                <span id="close-modal" style="cursor:pointer; font-size:24px;">&times;</span>
             </div>
-            <p style="font-size:11px; color:#ffd700; margin-top:8px;">Force Next Dice Roll:</p>
+            <p style="font-size:12px; color:#ffd700; margin-top:8px;">Force Next Dice Roll:</p>
             <div class="num-grid">
                 <button class="num-btn" data-v="1">1</button>
                 <button class="num-btn" data-v="2">2</button>
@@ -269,7 +42,7 @@
                 <button class="num-btn" data-v="6">6</button>
             </div>
             <div style="font-size:11px; margin-top:10px;">
-                <p>Remote Controller Phone Connection:</p>
+                <p>Connect Remote Controller Phone:</p>
                 <input type="text" id="target-room-input" class="input-box" placeholder="Enter Room Code">
                 <button id="connect-btn" class="action-btn">Connect Controller</button>
                 <p id="status-text" style="font-size:10px; color:#aaa; margin-top:4px;">Status: Standalone</p>
@@ -278,24 +51,14 @@
     </div>
 
     <script>
-        // Game Engine Variables
-        let currentTurn = 0; // 0: Blue, 1: Red, 2: Green, 3: Yellow
-        let currentRoll = null;
         let forcedRoll = null;
-        let isDiceRolled = false;
         let peer = null, conn = null;
 
-        const players = [
-            { name: "Blue", color: "blue", startPos: 39, basePrefix: "b-base-", pawns: [-1, -1, -1, -1] },
-            { name: "Red", color: "red", startPos: 0, basePrefix: "r-base-", pawns: [-1, -1, -1, -1] },
-            { name: "Green", color: "green", startPos: 13, basePrefix: "g-base-", pawns: [-1, -1, -1, -1] },
-            { name: "Yellow", color: "yellow", startPos: 26, basePrefix: "y-base-", pawns: [-1, -1, -1, -1] }
-        ];
-
+        // PeerJS Connection Initialization
         function initPeer() {
             const rId = 'ludo-' + Math.floor(1000 + Math.random() * 9000);
             peer = new Peer(rId);
-            peer.on('open', id => { document.getElementById('room-code-tag').innerText = 'ROOM: ' + id; });
+            peer.on('open', id => { console.log('Room Code: ' + id); });
             peer.on('connection', c => { conn = c; bindData(); });
         }
 
@@ -304,133 +67,55 @@
             conn.on('data', data => {
                 if (data.type === 'SET_DICE') {
                     forcedRoll = parseInt(data.val);
-                    updateBtns(data.val);
                 }
             });
         }
 
-        function renderPawns() {
-            // Clear existing pawns from DOM
-            document.querySelectorAll('.pawn-element').forEach(el => el.remove());
+        // Phaser Engine Logic Setup
+        const config = {
+            type: Phaser.AUTO,
+            width: 450,
+            height: 800,
+            parent: 'game-container',
+            backgroundColor: '#10599a',
+            scene: { preload: preload, create: create, update: update }
+        };
 
-            players.forEach((p, pIdx) => {
-                p.pawns.forEach((pos, pawnIdx) => {
-                    const pawnEl = document.createElement('div');
-                    pawnEl.className = `pawn pawn-${p.color} pawn-element`;
-                    pawnEl.dataset.player = pIdx;
-                    pawnEl.dataset.pawn = pawnIdx;
+        const game = new Phaser.Game(config);
 
-                    if (isDiceRolled && pIdx === currentTurn) {
-                        if ((pos === -1 && currentRoll === 6) || pos >= 0) {
-                            pawnEl.classList.add('movable');
-                        }
-                    }
+        function preload() {
+            // Assets rendering via canvas graphics inside scene
+        }
 
-                    pawnEl.addEventListener('click', () => handlePawnClick(pIdx, pawnIdx));
+        function create() {
+            let scene = this;
+            scene.add.text(225, 400, 'Ludo Engine Ready\nTap Top Right Corner for Secret Menu', {
+                fontSize: '16px', color: '#ffffff', align: 'center'
+            }).setOrigin(0.5);
 
-                    if (pos === -1) {
-                        document.getElementById(`${p.basePrefix}${pawnIdx}`).appendChild(pawnEl);
-                    } else {
-                        const cellId = `c-${(p.startPos + pos) % 52}`;
-                        const targetCell = document.getElementById(cellId);
-                        if (targetCell) targetCell.appendChild(pawnEl);
-                    }
-                });
+            // Secret Hotspot
+            let hotspot = scene.add.zone(400, 0, 50, 50).setOrigin(0,0).setInteractive();
+            hotspot.on('pointerdown', () => {
+                document.getElementById('admin-modal').style.display = 'flex';
             });
         }
 
-        function rollDice() {
-            if (isDiceRolled) return;
+        function update() {}
 
-            if (forcedRoll !== null) {
-                currentRoll = forcedRoll;
-                forcedRoll = null;
-                resetBtns();
-            } else {
-                currentRoll = Math.floor(Math.random() * 6) + 1;
-            }
-
-            isDiceRolled = true;
-            const diceBox = document.getElementById(`dice-p${currentTurn}`);
-            diceBox.innerText = currentRoll;
-
-            // Check if any move possible
-            const p = players[currentTurn];
-            const canMove = p.pawns.some(pos => (pos === -1 && currentRoll === 6) || pos >= 0);
-
-            if (!canMove) {
-                document.getElementById('status-line').innerText = `No move possible! Switching turn...`;
-                setTimeout(nextTurn, 1200);
-            } else {
-                document.getElementById('status-line').innerText = `Select a token to move!`;
-                renderPawns();
-            }
-        }
-
-        function handlePawnClick(pIdx, pawnIdx) {
-            if (!isDiceRolled || pIdx !== currentTurn) return;
-
-            let pos = players[pIdx].pawns[pawnIdx];
-
-            if (pos === -1 && currentRoll === 6) {
-                players[pIdx].pawns[pawnIdx] = 0; // Out of base
-                afterMove();
-            } else if (pos >= 0) {
-                players[pIdx].pawns[pawnIdx] += currentRoll;
-                afterMove();
-            }
-        }
-
-        function afterMove() {
-            isDiceRolled = false;
-            renderPawns();
-
-            if (currentRoll === 6) {
-                document.getElementById('status-line').innerText = `You got 6! Extra Chance. Roll again!`;
-            } else {
-                nextTurn();
-            }
-        }
-
-        function nextTurn() {
-            isDiceRolled = false;
-            currentTurn = (currentTurn + 1) % 4;
-
-            document.querySelectorAll('.player-card').forEach((card, idx) => {
-                card.classList.toggle('active-turn', idx === currentTurn);
-            });
-
-            document.getElementById('status-line').innerText = `Player ${currentTurn + 1} (${players[currentTurn].name}) Turn - Roll Dice!`;
-            renderPawns();
-        }
-
+        // Modal Controls Listener
         document.addEventListener('DOMContentLoaded', () => {
             initPeer();
-            renderPawns();
-
-            // Dice click listener
-            [0,1,2,3].forEach(id => {
-                document.getElementById(`dice-p${id}`).addEventListener('click', () => {
-                    if (id === currentTurn) rollDice();
-                });
-            });
-
-            // Modal Handlers
-            const modal = document.getElementById('admin-modal');
-            document.getElementById('open-settings-btn').addEventListener('click', () => modal.classList.remove('hidden'));
-            document.getElementById('secret-hotspot').addEventListener('click', () => modal.classList.remove('hidden'));
-            document.getElementById('close-modal').addEventListener('click', () => modal.classList.add('hidden'));
-
+            document.getElementById('close-modal').onclick = () => {
+                document.getElementById('admin-modal').style.display = 'none';
+            };
             document.querySelectorAll('.num-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    const v = parseInt(e.target.dataset.v);
-                    forcedRoll = v;
-                    updateBtns(v);
-                    if (conn) conn.send({ type: 'SET_DICE', val: v });
-                });
+                btn.onclick = (e) => {
+                    forcedRoll = parseInt(e.target.dataset.v);
+                    if (conn) conn.send({ type: 'SET_DICE', val: forcedRoll });
+                    alert('Next Dice set to: ' + forcedRoll);
+                };
             });
-
-            document.getElementById('connect-btn').addEventListener('click', () => {
+            document.getElementById('connect-btn').onclick = () => {
                 const target = document.getElementById('target-room-input').value.trim();
                 if (!target) return;
                 conn = peer.connect(target);
@@ -439,16 +124,8 @@
                     document.getElementById('status-text').style.color = '#28a745';
                 });
                 bindData();
-            });
+            };
         });
-
-        function updateBtns(v) {
-            document.querySelectorAll('.num-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.v) === v));
-        }
-
-        function resetBtns() {
-            document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('active'));
-        }
     </script>
 </body>
 </html>
