@@ -1,118 +1,359 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ludo King</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- PeerJS Library for Cross-Device Remote Control -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ludo Classic</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: Arial, Helvetica, sans-serif; }
+        body {
+            background: #10599a url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=1000') center/cover;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden;
+        }
+        .app-viewport {
+            width: 100%; max-width: 420px; height: 100vh; max-height: 860px;
+            background: repeating-linear-gradient(45deg, #186cb8, #186cb8 20px, #145ca0 20px, #145ca0 40px);
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            padding: 8px; position: relative; border: 2px solid #000; box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        .ads-banner {
+            width: 100%; background: #fff; border-radius: 4px; padding: 6px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
+        }
+        .meta-tag { background: #0084ff; color: #fff; padding: 2px 4px; border-radius: 2px; font-weight: bold; font-size: 9px; }
+        .player-slots-row { width: 100%; display: flex; justify-content: space-between; padding: 4px 10px; }
+        .player-card {
+            width: 110px; height: 50px; background: linear-gradient(180deg, #e6e6e6, #cccccc);
+            border: 2px solid #222; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+            padding: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); position: relative;
+        }
+        .player-card.active { border: 3px solid #ffd700; box-shadow: 0 0 12px #ffd700; }
+        .badge-icon {
+            width: 32px; height: 38px; border-radius: 6px; display: flex; justify-content: center; align-items: center;
+            border: 1px solid #000; box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+        }
+        .bg-red { background: linear-gradient(180deg, #0052cc, #002b80); }
+        .bg-green { background: linear-gradient(180deg, #0052cc, #002b80); }
+        .bg-blue { background: linear-gradient(180deg, #0052cc, #002b80); }
+        .bg-yellow { background: linear-gradient(180deg, #0052cc, #002b80); }
+        .pin-marker {
+            width: 18px; height: 26px; border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.5); border: 1px solid #fff;
+        }
+        .pin-marker::after {
+            content: ''; position: absolute; width: 8px; height: 8px; background: #fff;
+            border-radius: 50%; top: 4px; left: 4px;
+        }
+        .pin-red { background: #e60000; } .pin-green { background: #009933; }
+        .pin-blue { background: #0066ff; } .pin-yellow { background: #ffcc00; }
+        .dice-box-slot {
+            width: 42px; height: 42px; background: #fff; border: 2px solid #555; border-radius: 6px;
+            display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+        .dice-dot-single { width: 10px; height: 10px; background: #000; border-radius: 50%; }
+        .board-container {
+            width: 100%; aspect-ratio: 1 / 1; background: #fff; border: 4px solid #000;
+            display: grid; grid-template-columns: 6fr 3fr 6fr; grid-template-rows: 6fr 3fr 6fr;
+            position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
+        #secret-hotspot { position: absolute; top: 0; right: 0; width: 45px; height: 45px; z-index: 99; }
+        .house { width: 100%; height: 100%; border: 1px solid #000; padding: 12%; position: relative; }
+        .house-red { background: #ff2a2a; } .house-green { background: #00b050; }
+        .house-blue { background: #00b0f0; } .house-yellow { background: #ffc000; }
+        .house-inner {
+            width: 100%; height: 100%; background: #fff; border: 2px solid #000;
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px;
+        }
+        .spot {
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.6); border: 1px solid #888;
+        }
+        .spot-red { background: #ff2a2a; } .spot-green { background: #00b050; }
+        .spot-blue { background: #00b0f0; } .spot-yellow { background: #ffc000; }
+        .label-p {
+            position: absolute; color: #fff; font-weight: bold; font-size: 11px;
+            text-shadow: 1px 1px 2px #000; text-align: center; width: 100%;
+        }
+        .lbl-top { top: 4px; left: 0; } .lbl-bot { bottom: 4px; left: 0; }
+        .lbl-left { left: -24px; top: 40%; transform: rotate(-90deg); }
+        .lbl-right { right: -24px; top: 40%; transform: rotate(90deg); }
+        .track { display: grid; background: #fff; }
+        .track-v { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(6, 1fr); }
+        .track-h { grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(3, 1fr); }
+        .cell { border: 1px solid #777; position: relative; display: flex; justify-content: center; align-items: center; font-size: 12px; }
+        .c-red { background: #ff2a2a; } .c-green { background: #00b050; }
+        .c-blue { background: #00b0f0; } .c-yellow { background: #ffc000; }
+        .center-home { position: relative; background: #fff; border: 1px solid #000; }
+        .tri { position: absolute; width: 100%; height: 100%; }
+        .tri-red { background: #ff2a2a; clip-path: polygon(0 0, 50% 50%, 0 100%); }
+        .tri-green { background: #00b050; clip-path: polygon(0 0, 50% 50%, 100% 0); }
+        .tri-yellow { background: #ffc000; clip-path: polygon(100% 0, 50% 50%, 100% 100%); }
+        .tri-blue { background: #00b0f0; clip-path: polygon(0 100%, 50% 50%, 100% 100%); }
+        .turn-arrow {
+            width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent;
+            position: absolute; z-index: 10;
+        }
+        .arrow-right { border-left: 14px solid #ffcc00; left: -18px; top: 14px; }
+        .bottom-nav-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px; }
+        .nav-btn-icon {
+            width: 36px; height: 36px; background: linear-gradient(180deg, #ffcc00, #b38f00);
+            border: 2px solid #000; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 18px; box-shadow: 0 3px 5px rgba(0,0,0,0.5); cursor: pointer;
+        }
+        .no-ads-badge {
+            width: 42px; height: 42px; background: radial-gradient(circle, #ff3300, #800000);
+            border: 2px solid #fff; border-radius: 50%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: #fff; font-size: 8px; font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.6);
+        }
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center;
+        }
+        .modal.hidden { display: none; }
+        .modal-body {
+            background: #111; border: 2px solid #ffd700; border-radius: 10px; width: 85%; padding: 15px; color: #fff;
+        }
+        .num-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 10px 0; }
+        .num-btn { background: #ffd700; border: none; padding: 8px 0; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .num-btn.active { background: #28a745; color: #fff; }
+        .input-box { width: 100%; padding: 6px; margin: 6px 0; border-radius: 4px; border: none; }
+        .action-btn { background: #0084ff; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-    <!-- Main Game Container -->
-    <div id="game-container">
-        
-        <!-- Top Bar Header -->
-        <div class="top-bar">
-            <div class="room-tag">ROOM: <span id="room-code-display">CONNECTING...</span></div>
-            <button class="settings-btn" id="open-stealth-modal">⚙️</button>
+    <div class="app-viewport">
+        <!-- Top Ad Space -->
+        <div class="ads-banner">
+            <div>Reach new customers interested to buy with ads that click to WhatsApp.</div>
+            <span class="meta-tag">Meta</span>
         </div>
 
-        <!-- Ludo Board Area -->
-        <div class="board-wrapper">
-            <!-- Secret Hotspot (Top Right Corner Tap for Local Control) -->
-            <div id="secret-hotspot" title="Secret Hotspot"></div>
-
-            <div class="ludo-board" id="ludo-board">
-                <!-- Board grid, homes, and tracks generated by JS -->
+        <!-- Top Players -->
+        <div class="player-slots-row">
+            <div class="player-card" id="card-p1">
+                <div class="badge-icon bg-red"><div class="pin-marker pin-red"></div></div>
+                <div class="dice-box-slot"></div>
             </div>
-        </div>
-
-        <!-- Player Profiles & Controls -->
-        <div class="players-panel">
-            <!-- Red Player Profile -->
-            <div class="player-card red-card active-turn" id="card-p0">
-                <div class="avatar crown-avatar">👑</div>
-                <div class="p-info">
-                    <span class="p-name">Player 1 (Red)</span>
-                    <span class="p-status">Your Turn</span>
-                </div>
-            </div>
-
-            <!-- Dice Roll Section -->
-            <div class="dice-section">
-                <div class="dice-box" id="dice-box">
-                    <div class="cube" id="dice-cube">
-                        <div class="face front">1</div>
-                        <div class="face back">6</div>
-                        <div class="face right">3</div>
-                        <div class="face left">4</div>
-                        <div class="face top">2</div>
-                        <div class="face bottom">5</div>
-                    </div>
-                </div>
-                <button id="roll-btn" class="ludo-btn">ROLL</button>
-            </div>
-
-            <!-- Green Player Profile -->
-            <div class="player-card green-card" id="card-p1">
-                <div class="avatar">🎮</div>
-                <div class="p-info">
-                    <span class="p-name">Player 2 (Green)</span>
-                    <span class="p-status">Waiting</span>
-                </div>
+            <div class="player-card" id="card-p2">
+                <div class="dice-box-slot"></div>
+                <div class="badge-icon bg-green"><div class="pin-marker pin-green"></div></div>
             </div>
         </div>
 
+        <!-- Ludo Board -->
+        <div class="board-container">
+            <div id="secret-hotspot"></div>
+
+            <div class="house house-red">
+                <span class="label-p lbl-left">Player 2</span>
+                <div class="house-inner">
+                    <div class="spot spot-red"><div class="pin-marker pin-red"></div></div>
+                    <div class="spot spot-red"><div class="pin-marker pin-red"></div></div>
+                    <div class="spot spot-red"><div class="pin-marker pin-red"></div></div>
+                    <div class="spot spot-red"><div class="pin-marker pin-red"></div></div>
+                </div>
+            </div>
+
+            <div class="track track-v">
+                <div class="cell"></div><div class="cell"><span style="font-size:10px;">↓</span></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-green"></div><div class="cell c-green"></div>
+                <div class="cell"></div><div class="cell c-green"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-green"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-green"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-green"></div><div class="cell"></div>
+            </div>
+
+            <div class="house house-green">
+                <span class="label-p lbl-top">Player 3</span>
+                <div class="house-inner">
+                    <div class="spot spot-green"><div class="pin-marker pin-green"></div></div>
+                    <div class="spot spot-green"><div class="pin-marker pin-green"></div></div>
+                    <div class="spot spot-green"><div class="pin-marker pin-green"></div></div>
+                    <div class="spot spot-green"><div class="pin-marker pin-green"></div></div>
+                </div>
+            </div>
+
+            <div class="track track-h">
+                <div class="cell"></div><div class="cell c-red"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+                <div class="cell"><span style="font-size:10px;">→</span></div><div class="cell c-red"></div><div class="cell c-red"></div><div class="cell c-red"></div><div class="cell c-red"></div><div class="cell c-red"></div>
+                <div class="cell"></div><div class="cell"></div><div class="cell">☆</div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            </div>
+
+            <div class="center-home">
+                <div class="tri tri-red"></div><div class="tri tri-green"></div>
+                <div class="tri tri-yellow"></div><div class="tri tri-blue"></div>
+            </div>
+
+            <div class="track track-h">
+                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell">☆</div><div class="cell"></div><div class="cell"></div>
+                <div class="cell c-yellow"></div><div class="cell c-yellow"></div><div class="cell c-yellow"></div><div class="cell c-yellow"></div><div class="cell c-yellow"></div><div class="cell"><span style="font-size:10px;">←</span></div>
+                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell c-yellow"></div><div class="cell"></div>
+            </div>
+
+            <div class="house house-blue">
+                <span class="label-p lbl-bot">Player 1</span>
+                <div class="house-inner">
+                    <div class="spot spot-blue"><div class="pin-marker pin-blue"></div></div>
+                    <div class="spot spot-blue"><div class="pin-marker pin-blue"></div></div>
+                    <div class="spot spot-blue"><div class="pin-marker pin-blue"></div></div>
+                    <div class="spot spot-blue"><div class="pin-marker pin-blue"></div></div>
+                </div>
+            </div>
+
+            <div class="track track-v">
+                <div class="cell"></div><div class="cell c-blue"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-blue"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-blue"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell c-blue"></div><div class="cell"></div>
+                <div class="cell c-blue"></div><div class="cell c-blue"></div><div class="cell"></div>
+                <div class="cell"></div><div class="cell"><span style="font-size:10px;">↑</span></div><div class="cell"></div>
+            </div>
+
+            <div class="house house-yellow">
+                <span class="label-p lbl-right">Player 4</span>
+                <div class="house-inner">
+                    <div class="spot spot-yellow"><div class="pin-marker pin-yellow"></div></div>
+                    <div class="spot spot-yellow"><div class="pin-marker pin-yellow"></div></div>
+                    <div class="spot spot-yellow"><div class="pin-marker pin-yellow"></div></div>
+                    <div class="spot spot-yellow"><div class="pin-marker pin-yellow"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Players & Dice Roll -->
+        <div class="player-slots-row">
+            <div class="player-card active" id="card-p0">
+                <div class="badge-icon bg-blue"><div class="pin-marker pin-blue"></div></div>
+                <div class="dice-box-slot" id="main-dice-btn" style="cursor:pointer; position:relative;">
+                    <div class="turn-arrow arrow-right"></div>
+                    <div class="dice-dot-single" id="dice-dot-view"></div>
+                </div>
+            </div>
+            <div class="player-card" id="card-p3">
+                <div class="dice-box-slot"></div>
+                <div class="badge-icon bg-yellow"><div class="pin-marker pin-yellow"></div></div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-nav-bar">
+            <div class="nav-btn-icon" id="open-settings-btn">☰</div>
+            <div style="color:#fff; font-size:10px; font-weight:bold;" id="room-code-tag">ROOM: Connecting...</div>
+            <div class="no-ads-badge"><span>NO</span><span>ADS</span></div>
+        </div>
     </div>
 
-    <!-- Stealth Controller Modal (Fake Settings UI) -->
-    <div id="stealth-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>SETTINGS</h3>
-                <span class="close-btn" id="close-stealth-modal">&times;</span>
+    <!-- Hidden Remote Admin Overlay -->
+    <div class="modal hidden" id="admin-modal">
+        <div class="modal-body">
+            <div style="display:flex; justify-content:space-between;">
+                <h3>Game Controls</h3>
+                <span id="close-modal" style="cursor:pointer; font-size:20px;">&times;</span>
             </div>
-            
-            <div class="fake-settings">
-                <div class="setting-row"><span>Sound Effects</span> <input type="checkbox" checked></div>
-                <div class="setting-row"><span>Game Music</span> <input type="checkbox" checked></div>
+            <p style="font-size:11px; color:#ffd700; margin-top:8px;">Force Next Dice Roll:</p>
+            <div class="num-grid">
+                <button class="num-btn" data-v="1">1</button>
+                <button class="num-btn" data-v="2">2</button>
+                <button class="num-btn" data-v="3">3</button>
+                <button class="num-btn" data-v="4">4</button>
+                <button class="num-btn" data-v="5">5</button>
+                <button class="num-btn" data-v="6">6</button>
             </div>
-
-            <!-- Hidden / Disguised Controller Controls -->
-            <div class="stealth-controller">
-                <p class="stealth-title">🎯 Admin Force Outcome (Next Roll)</p>
-                
-                <div class="force-buttons">
-                    <button class="force-btn" data-val="1">1</button>
-                    <button class="force-btn" data-val="2">2</button>
-                    <button class="force-btn" data-val="3">3</button>
-                    <button class="force-btn" data-val="4">4</button>
-                    <button class="force-btn" data-val="5">5</button>
-                    <button class="force-btn" data-val="6">6</button>
-                </div>
-
-                <div class="preset-section">
-                    <label>Auto Preset:</label>
-                    <select id="rig-preset">
-                        <option value="none">Normal (Random)</option>
-                        <option value="always6">Always 6</option>
-                        <option value="lucky">Lucky High Numbers (5, 6)</option>
-                        <option value="unlucky">Unlucky Low Numbers (1, 2)</option>
-                    </select>
-                </div>
-
-                <div class="remote-connect-box">
-                    <p>Connect Remote Controller Phone:</p>
-                    <input type="text" id="target-room-input" placeholder="Enter Game Room Code">
-                    <button id="connect-peer-btn" class="ludo-btn-small">Connect to Game</button>
-                    <p id="peer-status">Status: Disconnected</p>
-                </div>
+            <div style="font-size:11px; margin-top:10px;">
+                <p>Remote Controller Phone Connection:</p>
+                <input type="text" id="target-room-input" class="input-box" placeholder="Enter Room Code">
+                <button id="connect-btn" class="action-btn">Connect Controller</button>
+                <p id="status-text" style="font-size:10px; color:#aaa; margin-top:4px;">Status: Standalone</p>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        let forcedVal = null;
+        let peer = null;
+        let conn = null;
+
+        function initPeer() {
+            const rId = 'ludo-' + Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(rId);
+
+            peer.on('open', id => {
+                document.getElementById('room-code-tag').innerText = 'ROOM: ' + id;
+            });
+
+            peer.on('connection', c => {
+                conn = c;
+                bindData();
+            });
+        }
+
+        function bindData() {
+            if (!conn) return;
+            conn.on('data', data => {
+                if (data.type === 'SET_DICE') {
+                    forcedVal = parseInt(data.val);
+                    updateBtns(data.val);
+                }
+            });
+        }
+
+        function getDiceResult() {
+            if (forcedVal !== null) {
+                const res = forcedVal;
+                forcedVal = null;
+                resetBtns();
+                return res;
+            }
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPeer();
+
+            document.getElementById('main-dice-btn').addEventListener('click', () => {
+                const val = getDiceResult();
+                alert('Dice Roll Result: ' + val);
+            });
+
+            const modal = document.getElementById('admin-modal');
+            document.getElementById('open-settings-btn').addEventListener('click', () => modal.classList.remove('hidden'));
+            document.getElementById('secret-hotspot').addEventListener('click', () => modal.classList.remove('hidden'));
+            document.getElementById('close-modal').addEventListener('click', () => modal.classList.add('hidden'));
+
+            document.querySelectorAll('.num-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    const v = parseInt(e.target.dataset.v);
+                    forcedVal = v;
+                    updateBtns(v);
+                    if (conn) conn.send({ type: 'SET_DICE', val: v });
+                });
+            });
+
+            document.getElementById('connect-btn').addEventListener('click', () => {
+                const target = document.getElementById('target-room-input').value.trim();
+                if (!target) return;
+                conn = peer.connect(target);
+                conn.on('open', () => {
+                    document.getElementById('status-text').innerText = 'Status: Connected!';
+                    document.getElementById('status-text').style.color = '#28a745';
+                });
+                bindData();
+            });
+        });
+
+        function updateBtns(v) {
+            document.querySelectorAll('.num-btn').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.v) === v);
+            });
+        }
+
+        function resetBtns() {
+            document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('active'));
+        }
+    </script>
 </body>
 </html>
